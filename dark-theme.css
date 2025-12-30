@@ -1,0 +1,12 @@
+/* Speechify Dark PDF Theme - Invert PDF pages only */
+
+/* Target the section containing all PDF pages */
+body.speechify-dark-mode section {
+    filter: invert(1) !important;
+}
+
+/* Exclude highlights from inversion - let JS handle color preservation */
+body.speechify-dark-mode section svg {
+    filter: none !important;
+}
+

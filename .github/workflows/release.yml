@@ -1,0 +1,85 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Validate version format
+        run: |
+          if [[ ! "${{ github.event.inputs.version }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Version must be in format vX.Y.Z (e.g., v1.0.0)"
+            exit 1
+          fi
+      
+      - name: Update manifest version
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          VERSION_NUMBER="${VERSION#v}"
+          cd speechify-dark-extension
+          jq --arg version "$VERSION_NUMBER" '.version = $version' manifest.json > manifest.json.tmp
+          mv manifest.json.tmp manifest.json
+          cat manifest.json | grep version
+      
+      - name: Package extension
+        run: |
+          cd speechify-dark-extension
+          zip -r ../speechify-dark-pdf-viewer-${{ github.event.inputs.version }}.zip . \
+            -x "*.git*" -x "README.md" -x "*.DS_Store"
+          cd ..
+          ls -lh speechify-dark-pdf-viewer-${{ github.event.inputs.version }}.zip
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          name: Release ${{ github.event.inputs.version }}
+          body: |
+            ## 🎉 Speechify Dark PDF Viewer ${{ github.event.inputs.version }}
+            
+            ### 📦 Installation
+            
+            Download `speechify-dark-pdf-viewer-${{ github.event.inputs.version }}.zip` and:
+            
+            1. Extract the ZIP file
+            2. Open Chrome and go to `chrome://extensions/`
+            3. Enable "Developer mode"
+            4. Click "Load unpacked"
+            5. Select the extracted folder
+            
+            ### 🌐 Chrome Web Store
+            
+            [Install from Chrome Web Store](#) _(Coming soon)_
+            
+            ### 🔄 Changelog
+            
+            - See [CHANGELOG.md](CHANGELOG.md) for details
+            
+            ---
+            
+            Made with ❤️ by [AhmedHosnyPro](https://github.com/ahmedhosnypro)
+          draft: false
+          prerelease: false
+          files: |
+            speechify-dark-pdf-viewer-${{ github.event.inputs.version }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Commit version update
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add speechify-dark-extension/manifest.json
+          git commit -m "chore: bump version to ${{ github.event.inputs.version }}" || echo "No changes to commit"
+          git push || echo "Nothing to push"
