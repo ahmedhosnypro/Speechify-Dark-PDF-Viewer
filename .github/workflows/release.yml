@@ -27,17 +27,14 @@ jobs:
         run: |
           VERSION="${{ github.event.inputs.version }}"
           VERSION_NUMBER="${VERSION#v}"
-          cd speechify-dark-extension
           jq --arg version "$VERSION_NUMBER" '.version = $version' manifest.json > manifest.json.tmp
           mv manifest.json.tmp manifest.json
           cat manifest.json | grep version
       
       - name: Package extension
         run: |
-          cd speechify-dark-extension
-          zip -r ../speechify-dark-pdf-viewer-${{ github.event.inputs.version }}.zip . \
-            -x "*.git*" -x "README.md" -x "*.DS_Store"
-          cd ..
+          zip -r speechify-dark-pdf-viewer-${{ github.event.inputs.version }}.zip . \
+            -x "*.git*" -x "README.md" -x "*.DS_Store" -x ".github/*"
           ls -lh speechify-dark-pdf-viewer-${{ github.event.inputs.version }}.zip
       
       - name: Create Release
@@ -80,6 +77,6 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add speechify-dark-extension/manifest.json
+          git add manifest.json
           git commit -m "chore: bump version to ${{ github.event.inputs.version }}" || echo "No changes to commit"
           git push || echo "Nothing to push"
